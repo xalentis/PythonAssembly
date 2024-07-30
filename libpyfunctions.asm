@@ -60,6 +60,10 @@ _start:
 ; result of _proc should be returned in rax so Python can get it back
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; dummy test function, just returns same int passed in as result
+_proc dummy
+    mov rax, rdi
+_endp
 
 ;calculate the square of given value, result in rax
 _proc square
@@ -71,11 +75,11 @@ _endp
 _proc max
     xor rax, rax
     xor rbx, rbx
-    xor rdx, rdx
     mov rcx, rsi
     test ecx, ecx
     jz .proc_done
     mov edx, [rdi + rbx * 4] ; load first element to bootstrap
+    inc rbx
 
 .max_loop:
     mov eax, [rdi + rbx * 4]
