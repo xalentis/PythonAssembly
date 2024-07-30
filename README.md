@@ -15,3 +15,5 @@ It would be great if this repo is extended by anyone else, by adding more routin
 ## NOTE:
 I work pretty much exclusively on Linux, so this repo and code is geared towards NASM under Linux, although it should be easy to port to Windows or Mac.
 See the sample Python file for usage, and make using the makefile provided.
+
+A special thanks to Agguro (https://github.com/agguro/linux-nasm) for the macros and boilerplate templates.
