@@ -42,6 +42,43 @@ section .text
 _start:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; sort array in rdi of length rbx from small to large
+bubble_sort:
+    dec rbx
+    mov r9, rbx
+
+.sort_outer_loop:
+    push r9
+    xor rsi, rsi
+    mov rdx, 0
+
+.sort_inner_loop:
+    mov eax, [rdi + (rsi*4)]
+    mov r8d, [rdi + (rsi*4) + 4]
+    cmp eax, r8d
+    jle .no_swap
+    mov [rdi + (rsi*4)], r8d
+    mov [rdi + (rsi*4) + 4], eax
+    mov rdx, 1
+
+.no_swap:
+    inc rsi
+    dec r9
+    test r9,r9
+    jnz .sort_inner_loop
+    pop r9
+    cmp rdx, 0
+    je .done
+    dec rbx
+    jnz .sort_outer_loop
+
+.done:
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Exported functions start here
 ;
 ;
@@ -157,4 +194,29 @@ _proc mean
 .proc_done:
 _endp
 
+; calculate median of array, result in rax
+_proc median
+    mov rbx, rsi
+    test ebx, ebx
+    jz .proc_done           ; empty array passed
+    push rbx
+    push rdi
+    call bubble_sort        ; need to sort to find median
+    pop rdi
+    pop rbx
+    test rbx, 1             ; Check if the length is odd or even
+    jz .even_median
+    shr rbx, 1
+    mov rax, [rdi + rbx * 4]
+    jmp .proc_done
+
+.even_median:
+    shr rbx, 1
+    mov rdx, [rdi + (rbx * 4) - 4]
+    mov rax, [rdi + (rbx * 4)]
+    add rax, rdx
+    shr eax, 1
+
+.proc_done:
+_endp
 

@@ -20,3 +20,6 @@ def min(arr):
 
 def sum(arr):
     return nasmfunctions.sum(arr, len(arr))
+
+def median(arr):
+    return nasmfunctions.median(arr, len(arr))
