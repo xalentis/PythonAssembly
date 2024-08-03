@@ -13,12 +13,10 @@ def run_tests():
     arr2 = [22, 55, 77, 44, 66]
     c_arr2 = (ctypes.c_int * len(arr2))(*arr2)
 
-    arr3 = [22, 55, 77, 55, 99]
+    # work in progress:
+    arr3 = [22, 55, 77, 44, 66]
     c_arr3 = (ctypes.c_int * len(arr3))(*arr3)
-
-    # work in progress
-    result = functions.unique(c_arr3)
-
+    result = functions.mode(c_arr3)
     
     # these tests return a single numeric results
     assert functions.compare(c_arr, c_arr) == 1, "COMPARE failed equal."
@@ -26,7 +24,6 @@ def run_tests():
     assert functions.contains(c_arr, 88) == 2, "CONTAINS failed."
     assert functions.contains(c_arr, 44) == -1, "CONTAINS failed."
     assert functions.median(c_arr) == 88, "MEDIAN failed."
-    assert functions.dummy(x) == 5, "DUMMY failed."
     assert functions.square(x) == 25, "SQUARE failed."
     assert functions.mean(c_arr) == 71, "MEAN failed."
     assert functions.max(c_arr) == 102, "MAX failed."
@@ -48,6 +45,9 @@ def run_tests():
     c_arr = (ctypes.c_int * len(arr))(*arr)
     c_arr2 = (ctypes.c_int * len(arr2))(*arr2)
     assert functions.dot(c_arr, c_arr2) == 20614, "DOT failed."
+    arr3 = [22, 55, 77, 55, 88]
+    c_arr3 = (ctypes.c_int * len(arr3))(*arr3)
+    assert functions.unique(c_arr3) == (4, [22, 55, 77, 88]), "UNIQUE failed."
 
     print("All tests passed.")
 

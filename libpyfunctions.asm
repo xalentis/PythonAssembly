@@ -111,11 +111,6 @@ bubble_sort:
 ; result of _proc should be returned in rax so Python can get it back
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; dummy test function, just returns same int passed in as result
-_proc dummy
-    mov rax, rdi
-_endp
-
 ;calculate the square of given value, result in rax
 _proc square
     mov     rax, rdi
@@ -449,32 +444,7 @@ _proc dot
 _endp
 
 ; return the unique numbers in the specified array
-
-unique_contains:
-    xor rbx, rbx
-    cmp r10, 0
-    jg unique_contains_contains_loop
-    mov [r8], rdx
-    inc r10
-    ret
-
-unique_contains_contains_loop:
-    mov rax, [r8 + (rbx * 4)]
-    cmp rax, rdx
-    je unique_contains_found
-    inc rbx
-    cmp rbx, r10
-    jle unique_contains_contains_loop
-    mov [r8 + (r10 * 4)], rdx
-    inc r10
-    ret
-
-unique_contains_found:
-    ret
-
 _proc unique
-    ; TODO: work in progress !
-
     ; allocate memory
     push rsi
     push rdi
@@ -495,10 +465,12 @@ _proc unique
 
 .scan_loop:
     mov rdx, [rdi + (r9 * 4)]
+    push r8
     call unique_contains
+    pop r8
     inc r9
     cmp r9, rsi
-    jne .scan_loop
+    jnz .scan_loop
 
     ; copy our buffer back to input array as the result
     xor rbx, rbx
@@ -508,14 +480,47 @@ _proc unique
     mov [rdi + (rbx * 4)], rdx
     inc rbx
     cmp rbx, r10
-    jle .copy_back
+    jnz .copy_back
 
     ; deallocate memory
+    mov rax, [r8 + 12]  
+    push rax
     push r10
     mov rdi, r8         ; addr = address of allocated memory
     mov eax, 11         ; syscall number for munmap (sys_munmap)
     syscall
     pop r10
-    mov rax, r10        ; total unique elements
+    pop rax
+    mov rax, r10        ; total unique elements returned in r10
+
+_endp
+
+unique_contains:
+    xor rbx, rbx
+    cmp r10, 0
+    jnz unique_contains_contains_loop
+    mov [r8], rdx
+    inc r10
+    ret
+
+unique_contains_contains_loop:
+    mov rax, [r8 + (rbx * 4)]
+    cmp eax, edx
+    jz unique_contains_found
+    inc rbx
+    cmp rbx, r10
+    jnz unique_contains_contains_loop
+    mov [r8 + (r10 * 4)], rdx
+    inc r10
+    ret
+
+unique_contains_found:
+    ret
+
+; determine the mode of given array
+_proc mode
+
+    ; todo
+    xor rax, rax
 
 _endp

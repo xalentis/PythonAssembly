@@ -3,9 +3,6 @@ from ctypes import *
 so_file = "./libpyfunctions.so.1.0.0"
 nasmfunctions = CDLL(so_file)
 
-def dummy(a):
-    return nasmfunctions.dummy(a)
-
 def square(a):
     return nasmfunctions.square(a)
 
@@ -53,3 +50,6 @@ def unique(arr):
     result = nasmfunctions.unique(arr, len(arr))
     new_array = [arr[i] for i in range(0,result)]
     return (result, new_array)
+
+def mode(arr):
+    return nasmfunctions.mode(arr, len(arr))
