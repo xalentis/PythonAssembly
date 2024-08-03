@@ -79,36 +79,7 @@ bubble_sort:
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Exported functions start here
-;
-;
-; Notes:
-;
-; passing single values will arrive in rdi register
-;
-; passing arrays:
-; upon _proc entry, rsi contains number of elements in the array or 0
-; array elements will start at [rdi], for example, given an array of 11,22,33 then:
-; rsi = 3
-; [rdi] = 11
-; [rdi+4] = 22
-; [rdi+8] = 33
-;
-; passing two arrays as input parameters:
-; rsi = array 1 len
-; [rdi] = start of array 1
-; rcx = array 2 len
-; [rdx] = start of array 2
-; 
-; calling convention generally is:
-; RDI: First argument
-; RSI: Second argument
-; RDX: Third argument
-; RCX: Fourth argument
-; R8: Fifth argument
-; R9: Sixth argument
-;
-; result of _proc should be returned in rax so Python can get it back
+; Integer type functions. These handle integer type values with no decimals points
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;calculate the square of given value, result in rax
@@ -517,10 +488,77 @@ unique_contains_contains_loop:
 unique_contains_found:
     ret
 
-; determine the mode of given array
-_proc mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Floating point type function equivalents
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    ; todo
-    xor rax, rax
+;calculate the square of given value, result in rax
+_proc d_square
+    mulsd xmm0, xmm0
+_endp
+
+;find max value given an array, result in rax
+_proc d_max
+    xor rbx, rbx
+    mov rcx, rsi
+    test ecx, ecx
+    jz .proc_done
+    movsd xmm0, qword [rdi + rbx * 8] ; load first element to bootstrap
+    inc rbx
+
+.max_loop:
+    movsd xmm1, qword [rdi + rbx * 8]
+    ucomisd xmm0, xmm1
+    ja .max_less
+    movsd xmm0, xmm1
+
+.max_less:
+    inc rbx
+    cmp rbx, rcx
+    jnz .max_loop
+
+.proc_done:
+_endp
+
+;find min value given an array, result in rax
+_proc d_min
+    xor rbx, rbx
+    mov rcx, rsi
+    test ecx, ecx
+    jz .proc_done
+    movsd xmm0, qword [rdi + rbx * 8] ; load first element to bootstrap
+    inc rbx
+
+.min_loop:
+    movsd xmm1, qword [rdi + rbx * 8]
+    ucomisd xmm0, xmm1
+    jg .min_less
+    movsd xmm0, xmm1
+
+.min_less:
+    inc rbx
+    cmp rbx, rcx
+    jnz .min_loop
+
+.proc_done:
+_endp
+
+;calculate sum of array, result in rax
+_proc d_sum
+    xor rbx, rbx
+    mov rcx, rsi
+    test ecx, ecx
+    jz .proc_done
+    movsd xmm0, qword [rdi + rbx * 8] ; load first element to bootstrap
+    inc rbx
+
+.min_loop:
+    movsd xmm1, qword [rdi + rbx * 8]
+    addsd xmm0, xmm1
+    inc rbx
+    cmp rbx, rcx
+    jnz .min_loop
+
+.proc_done:
 
 _endp

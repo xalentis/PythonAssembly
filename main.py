@@ -1,24 +1,37 @@
 import functions
-import time
-import numpy as np
-import random
 import ctypes
 
 def run_tests():
 
-    # tests
+    ###########################################################################################
+    # floating point functions
+    # work in progress !
+    ###########################################################################################
+
+    # test values
+    x = ctypes.c_double(1.5)
+    arr = [11.2, 102.5, 88.1, 88.2, 88.3]
+    c_arr = (ctypes.c_double * len(arr))(*arr)
+
+
+    # these tests return a single floating point result
+    assert functions.d_square(x) == 2.25, "FP SQUARE failed."
+    assert functions.d_min(c_arr) == 11.2, "FP MIN failed."
+    assert functions.d_max(c_arr) == 102.5, "FP MAX failed."
+    assert functions.d_sum(c_arr) == 378.3, "FP SUM failed."
+
+    ###########################################################################################
+    # integer based functions
+    ###########################################################################################
+
+    # test values
     x = 5
     arr = [11, 102, 88, 99, 55]
     c_arr = (ctypes.c_int * len(arr))(*arr)
     arr2 = [22, 55, 77, 44, 66]
     c_arr2 = (ctypes.c_int * len(arr2))(*arr2)
-
-    # work in progress:
-    arr3 = [22, 55, 77, 44, 66]
-    c_arr3 = (ctypes.c_int * len(arr3))(*arr3)
-    result = functions.mode(c_arr3)
     
-    # these tests return a single numeric results
+    # these tests return a single integer result
     assert functions.compare(c_arr, c_arr) == 1, "COMPARE failed equal."
     assert functions.compare(c_arr, c_arr2) != -1, "COMPARE failed not equal."
     assert functions.contains(c_arr, 88) == 2, "CONTAINS failed."

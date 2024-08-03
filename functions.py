@@ -3,6 +3,10 @@ from ctypes import *
 so_file = "./libpyfunctions.so.1.0.0"
 nasmfunctions = CDLL(so_file)
 
+###########################################################################################################
+# integer-based functions
+###########################################################################################################
+
 def square(a):
     return nasmfunctions.square(a)
 
@@ -53,3 +57,24 @@ def unique(arr):
 
 def mode(arr):
     return nasmfunctions.mode(arr, len(arr))
+
+###########################################################################################################
+# floating point functions - work in progress..
+###########################################################################################################
+
+nasmfunctions.d_square.restype = c_double
+nasmfunctions.d_square.argtypes = [c_double]
+def d_square(a):
+    return nasmfunctions.d_square(a)
+
+nasmfunctions.d_min.restype = c_double
+def d_min(arr):
+    return nasmfunctions.d_min(arr, len(arr)) 
+
+nasmfunctions.d_max.restype = c_double
+def d_max(arr):
+    return nasmfunctions.d_max(arr, len(arr))
+
+nasmfunctions.d_sum.restype = c_double
+def d_sum(arr):
+    return nasmfunctions.d_sum(arr, len(arr)) 
