@@ -42,10 +42,10 @@ section .text
 _start:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Helper functions
+; Helper functions - integer functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; sort array in rdi of length rbx from small to large
+; sort array in rdi of length rbx
 bubble_sort:
     dec rbx
     mov r9, rbx
@@ -62,6 +62,65 @@ bubble_sort:
     jle .no_swap
     mov [rdi + (rsi*4)], r8d
     mov [rdi + (rsi*4) + 4], eax
+    mov rdx, 1
+
+.no_swap:
+    inc rsi
+    dec r9
+    test r9,r9
+    jnz .sort_inner_loop
+    pop r9
+    cmp rdx, 0
+    je .done
+    dec rbx
+    jnz .sort_outer_loop
+
+.done:
+    ret
+
+; used during search in the unique function
+unique_contains:
+    xor rbx, rbx
+    cmp r10, 0
+    jnz contains_loop
+    mov [r8], rdx
+    inc r10
+    ret
+
+contains_loop:
+    mov rax, [r8 + (rbx * 4)]
+    cmp eax, edx
+    jz contains_found
+    inc rbx
+    cmp rbx, r10
+    jnz contains_loop
+    mov [r8 + (r10 * 4)], rdx
+    inc r10
+    ret
+
+contains_found:
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper functions - floating point functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; sort array in rdi of length rbx
+d_bubble_sort:
+    dec rbx
+    mov r9, rbx
+
+.sort_outer_loop:
+    push r9
+    xor rsi, rsi
+    mov rdx, 0
+
+.sort_inner_loop:
+    movsd xmm0, [rdi + (rsi*8)]
+    movsd xmm1, [rdi + (rsi*8) + 8]
+    ucomisd xmm0, xmm1
+    jb .no_swap
+    movsd [rdi + (rsi*8)], xmm1
+    movsd [rdi + (rsi*8) + 8], xmm0
     mov rdx, 1
 
 .no_swap:
@@ -353,6 +412,32 @@ _proc add
 .done:
 _endp
 
+; subtracts two arrays element-wise, result returned in array 1
+_proc sub
+    mov rax, -1
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+
+.add_loop:
+    xor rax, rax
+    mov eax, [rdi + rbx * 4]
+    sub eax, [rdx + rbx * 4]
+    mov [rdi + rbx * 4], eax
+    inc rbx
+    cmp rbx, rcx
+    jl .add_loop
+    mov rax, 1
+    jmp .done
+
+.done:
+_endp
+
 ; multiplies two arrays element-wise, result returned in array 1
 _proc mul
     mov rax, -1
@@ -442,8 +527,6 @@ _proc unique
     inc r9
     cmp r9, rsi
     jnz .scan_loop
-
-    ; copy our buffer back to input array as the result
     xor rbx, rbx
 
 .copy_back:
@@ -466,30 +549,8 @@ _proc unique
 
 _endp
 
-unique_contains:
-    xor rbx, rbx
-    cmp r10, 0
-    jnz unique_contains_contains_loop
-    mov [r8], rdx
-    inc r10
-    ret
-
-unique_contains_contains_loop:
-    mov rax, [r8 + (rbx * 4)]
-    cmp eax, edx
-    jz unique_contains_found
-    inc rbx
-    cmp rbx, r10
-    jnz unique_contains_contains_loop
-    mov [r8 + (r10 * 4)], rdx
-    inc r10
-    ret
-
-unique_contains_found:
-    ret
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Floating point type function equivalents
+; Floating point function equivalents
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;calculate the square of given value, result in rax
@@ -497,7 +558,7 @@ _proc d_square
     mulsd xmm0, xmm0
 _endp
 
-;find max value given an array, result in rax
+;find max value given a floating point array, result in rax
 _proc d_max
     xor rbx, rbx
     mov rcx, rsi
@@ -508,7 +569,7 @@ _proc d_max
 
 .max_loop:
     movsd xmm1, qword [rdi + rbx * 8]
-    ucomisd xmm0, xmm1
+    comisd xmm0, xmm1
     ja .max_less
     movsd xmm0, xmm1
 
@@ -520,7 +581,7 @@ _proc d_max
 .proc_done:
 _endp
 
-;find min value given an array, result in rax
+;find min value given a floating point array, result in rax
 _proc d_min
     xor rbx, rbx
     mov rcx, rsi
@@ -531,7 +592,7 @@ _proc d_min
 
 .min_loop:
     movsd xmm1, qword [rdi + rbx * 8]
-    ucomisd xmm0, xmm1
+    comisd xmm0, xmm1
     jg .min_less
     movsd xmm0, xmm1
 
@@ -543,7 +604,7 @@ _proc d_min
 .proc_done:
 _endp
 
-;calculate sum of array, result in rax
+;calculate sum of floating point array, result in rax
 _proc d_sum
     xor rbx, rbx
     mov rcx, rsi
@@ -552,13 +613,311 @@ _proc d_sum
     movsd xmm0, qword [rdi + rbx * 8] ; load first element to bootstrap
     inc rbx
 
-.min_loop:
+.sum_loop:
     movsd xmm1, qword [rdi + rbx * 8]
     addsd xmm0, xmm1
     inc rbx
     cmp rbx, rcx
-    jnz .min_loop
+    jnz .sum_loop
 
 .proc_done:
+_endp
 
+; calculate the mean of a floating point array
+_proc d_mean
+    xor rbx, rbx
+    mov rcx, rsi
+    test ecx, ecx
+    jz .proc_done
+    movsd xmm0, qword [rdi + rbx * 8] ; load first element to bootstrap
+    inc rbx
+
+;calculate mean of array, result in rax
+.mean_loop:
+    movsd xmm1, qword [rdi + rbx * 8]
+    addsd xmm0, xmm1
+    inc rbx
+    cmp rbx, rcx
+    jnz .mean_loop
+    cvtsi2sd xmm1, rbx
+    divsd xmm0, xmm1
+
+.proc_done:
+_endp
+
+; adds two arrays element-wise, result returned in array 1
+_proc d_add
+    mov rax, -1
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+
+.add_loop:
+    xor rax, rax
+    movsd xmm0, qword [rdi + rbx * 8]
+    movsd xmm1, qword [rdx + rbx * 8]
+    addsd xmm0, xmm1
+    movsd qword [rdi + rbx * 8], xmm0
+    inc rbx
+    cmp rbx, rcx
+    jl .add_loop
+    mov rax, 1
+    jmp .done
+
+.done:
+_endp
+
+; subtracts two arrays element-wise, result returned in array 1
+_proc d_sub
+    mov rax, -1
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+
+.sub_loop:
+    xor rax, rax
+    movsd xmm0, qword [rdi + rbx * 8]
+    movsd xmm1, qword [rdx + rbx * 8]
+    subsd xmm0, xmm1
+    movsd qword [rdi + rbx * 8], xmm0
+    inc rbx
+    cmp rbx, rcx
+    jl .sub_loop
+    mov rax, 1
+    jmp .done
+
+.done:
+_endp
+
+; multiplies two arrays element-wise, result returned in array 1
+_proc d_mul
+    mov rax, -1
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+
+.mul_loop:
+    xor rax, rax
+    movsd xmm0, qword [rdi + rbx * 8]
+    movsd xmm1, qword [rdx + rbx * 8]
+    mulsd xmm0, xmm1
+    movsd qword [rdi + rbx * 8], xmm0
+    inc rbx
+    cmp rbx, rcx
+    jl .mul_loop
+    mov rax, 1
+    jmp .done
+
+.done:
+_endp
+
+; returns the dot product of two arrays
+_proc d_dot
+    pxor xmm0, xmm0
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+
+.mul_loop:
+    xor rax, rax
+    movsd xmm0, qword [rdi + rbx * 8]
+    movsd xmm1, qword [rdx + rbx * 8]
+    mulsd xmm0, xmm1
+    movsd qword [rdi + rbx * 8], xmm0
+    inc rbx
+    cmp rbx, rcx
+    jl .mul_loop
+    xor rbx, rbx
+    pxor xmm0, xmm0
+
+.sum_loop:
+    movsd xmm1, qword [rdi + rbx * 8]
+    addsd xmm0, xmm1
+    inc rbx
+    cmp rbx, rcx
+    jl .sum_loop
+
+.done:
+_endp
+
+; compares two floating point arrays
+; returns -1 if not equal size or array length is 0
+; returns 0 if not equal in values
+; returns 1 if equal in values
+_proc d_compare
+    mov rax, -1
+    mov rbx, rsi
+    test ebx, ebx
+    jz .done ; zero length array 1
+    test ecx, ecx
+    jz .done ; zero length array 2
+    cmp rsi, rcx
+    jne .done
+    xor rbx, rbx
+    mov rax, 0 ; assume not equal
+
+.compare_loop:
+    movsd xmm0, qword [rdi + rbx * 8]
+    movsd xmm1, qword [rdx + rbx * 8]
+    comisd xmm0, xmm1
+    jne .done
+    inc rbx
+    cmp rbx, rcx
+    jl .compare_loop
+    mov rax, 1
+    jmp .done
+
+.not_equal:
+    mov rax, -1
+
+.done:
+_endp
+
+; determines if array contains given floating point value
+; returns -1 if no
+; else element index (zero-based) returned
+_proc d_contains
+    mov rax, -1 ; assume no
+    xor rbx, rbx
+    mov rcx, rsi
+    test ecx, ecx
+    jz .done
+
+.contains_loop:
+    movsd xmm1, [rdi + (rbx * 8)]
+    comisd xmm0, xmm1
+    jne .not_found
+    mov rax, rbx
+    jmp .done
+
+.not_found:
+    inc rbx
+    cmp rbx, rcx
+    jne .contains_loop
+    mov rax, -1 ; not found
+
+.done:
+_endp
+
+; sort array in rdi of length rsi in ascending order
+_proc d_sortasc
+    xor rax, rax
+    mov rcx, rsi
+    test ecx, ecx
+    jz .done
+    mov rbx, rsi
+    dec rbx
+    mov r9, rbx
+
+.sort_outer_loop:
+    xor rsi, rsi
+    mov rdx, 0
+
+.sort_inner_loop:
+    movsd xmm0, [rdi + rsi*8]
+    movsd xmm1, [rdi + rsi*8 + 8]
+    ucomisd xmm0, xmm1
+    jb .no_swap
+    movsd [rdi + rsi*8], xmm1
+    movsd [rdi + rsi*8 + 8], xmm0
+    mov rdx, 1
+
+.no_swap:
+    inc rsi
+    cmp rsi, r9
+    jb .sort_inner_loop
+    dec r9
+    test r9, r9
+    jz .done
+    test rdx, rdx
+    jnz .sort_outer_loop
+
+.done:
+    mov rax, 1
+_endp
+
+; sort array in rdi of length rsi in descending order
+_proc d_sortdsc
+    xor rax, rax
+    mov rcx, rsi
+    test ecx, ecx
+    jz .done
+    mov rbx, rsi
+    dec rbx
+    mov r9, rbx
+
+.sort_outer_loop:
+    xor rsi, rsi
+    mov rdx, 0
+
+.sort_inner_loop:
+    movsd xmm0, [rdi + rsi*8]
+    movsd xmm1, [rdi + rsi*8 + 8]
+    ucomisd xmm0, xmm1
+    ja .no_swap
+    movsd [rdi + rsi*8], xmm1
+    movsd [rdi + rsi*8 + 8], xmm0
+    mov rdx, 1
+
+.no_swap:
+    inc rsi
+    cmp rsi, r9
+    jb .sort_inner_loop
+    dec r9
+    test r9, r9
+    jz .done
+    test rdx, rdx
+    jnz .sort_outer_loop
+
+.done:
+    mov rax, 1
+_endp
+
+; calculate median of array
+_proc d_median
+    mov rbx, rsi
+    test ebx, ebx
+    jz .proc_done           ; empty array passed
+    push rbx
+    push rdi
+    call d_bubble_sort        ; need to sort to find median
+    pop rdi
+    pop rbx
+    test rbx, 1             ; Check if the length is odd or even
+    jz .even_median
+    shr rbx, 1
+    movsd xmm0, [rdi + rbx * 8]
+    jmp .proc_done
+
+.even_median:
+    shr rbx, 1
+    movsd xmm1, [rdi + (rbx * 8) - 8]
+    movsd xmm0, [rdi + (rbx * 8)]
+    addsd xmm0, xmm1
+    mov rax, 0x3FE0000000000000  ; 0.5 in IEEE 754 double-precision format
+    movq xmm1, rax               ; Move the constant 0.5 into xmm1
+    ; Divide xmm0 by 2 (multiply by 0.5)
+    mulsd xmm0, xmm1
+
+.proc_done:
 _endp
