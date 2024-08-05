@@ -82,23 +82,23 @@ bubble_sort:
 unique_contains:
     xor rbx, rbx
     cmp r10, 0
-    jnz contains_loop
+    jnz .contains_loop
     mov [r8], rdx
     inc r10
     ret
 
-contains_loop:
+.contains_loop:
     mov rax, [r8 + (rbx * 4)]
     cmp eax, edx
-    jz contains_found
+    jz .contains_found
     inc rbx
     cmp rbx, r10
-    jnz contains_loop
+    jnz .contains_loop
     mov [r8 + (r10 * 4)], rdx
     inc r10
     ret
 
-contains_found:
+.contains_found:
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -135,6 +135,30 @@ d_bubble_sort:
     jnz .sort_outer_loop
 
 .done:
+    ret
+
+; used during search in the d_unique function
+d_unique_contains:
+    xor rbx, rbx
+    cmp r10, 0
+    jnz .contains_loop
+    movsd [r8], xmm0
+    inc r10
+    ret
+
+.contains_loop:
+    xor eax, eax ; clear parity flag which will be set by ucomisd below
+    movsd xmm1, [r8 + (rbx * 8)]
+    ucomisd xmm0, xmm1
+    jz .contains_found
+    inc rbx
+    cmp rbx, r10
+    jnz .contains_loop
+    movsd [r8 + (r10 * 8)], xmm0
+    inc r10
+    ret
+
+.contains_found:
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -504,6 +528,10 @@ _proc unique
     ; allocate memory
     push rsi
     push rdi
+
+    mov rax, rsi        ; how many elements (passed via rsi, length of array)
+    imul rax, 4         ; size of element (int)
+    mov rsi, rax
     mov edi, 0          ; addr = NULL (let the kernel choose the address)
     mov edx, 0x3        ; prot = PROT_READ | PROT_WRITE
     mov r10d, 0x22      ; flags = MAP_PRIVATE | MAP_ANONYMOUS
@@ -537,16 +565,15 @@ _proc unique
     jnz .copy_back
 
     ; deallocate memory
-    mov rax, [r8 + 12]  
-    push rax
+    mov rax, rsi
+    imul rax, 4
+    mov rsi, rax
     push r10
     mov rdi, r8         ; addr = address of allocated memory
     mov eax, 11         ; syscall number for munmap (sys_munmap)
     syscall
     pop r10
-    pop rax
     mov rax, r10        ; total unique elements returned in r10
-
 _endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -920,4 +947,56 @@ _proc d_median
     mulsd xmm0, xmm1
 
 .proc_done:
+_endp
+
+; returns the unique elements in the given floating point array
+_proc d_unique
+    ; allocate memory
+    push rsi
+    push rdi
+    mov rax, rsi        ; how many elements (passed via rsi, length of array)
+    imul rax, 4         ; size of element (int)
+    mov rsi, rax
+    mov edi, 0          ; addr = NULL (let the kernel choose the address)
+    mov edx, 0x3        ; prot = PROT_READ | PROT_WRITE
+    mov r10d, 0x22      ; flags = MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8d, -1         ; fd = -1 (not backed by any file)
+    mov r9, 0           ; offset = 0
+    mov eax, 9          ; syscall number for mmap (sys_mmap)
+    syscall
+    mov r8, rax         ; address of our new array in r8
+
+    ; setup
+    pop rdi             ; pointer to input array
+    pop rsi             ; length of input array
+    xor r9, r9          ; our iterator for main scan loop
+    xor r10, r10        ; how many unique elements so far?
+
+.scan_loop:
+    movsd xmm0, [rdi + (r9 * 8)]
+    push r8
+    call d_unique_contains
+    pop r8
+    inc r9
+    cmp r9, rsi
+    jnz .scan_loop
+    xor rbx, rbx
+
+.copy_back:
+    movsd xmm0, [r8 + (rbx * 8)]
+    movsd [rdi + (rbx * 8)], xmm0
+    inc rbx
+    cmp rbx, r10
+    jnz .copy_back
+
+    ; deallocate memory
+    mov rax, rsi
+    imul rax, 4
+    mov rsi, rax
+    push r10
+    mov rdi, r8         ; addr = address of allocated memory
+    mov eax, 11         ; syscall number for munmap (sys_munmap)
+    syscall
+    pop r10
+    mov rax, r10        ; total unique elements returned in r10
 _endp

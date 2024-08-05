@@ -56,7 +56,7 @@ def dot(arr1, arr2):
 
 def unique(arr):
     result = nasmfunctions.unique(arr, len(arr))
-    new_array = [arr[i] for i in range(0,result)]
+    new_array = [arr[i] for i in range(result)]
     return (result, new_array)
 
 ###########################################################################################################
@@ -124,3 +124,9 @@ nasmfunctions.d_median.argtypes = [POINTER(c_double), c_int]
 nasmfunctions.d_median.restype = c_double
 def d_median(arr):
     return nasmfunctions.d_median(arr, len(arr))
+
+nasmfunctions.d_unique.argtypes = [POINTER(c_double), c_int]
+nasmfunctions.d_unique.restype = c_int
+def d_unique(arr):
+    result = nasmfunctions.d_unique(arr, len(arr))
+    return (result, [arr[i] for i in range(result)])
